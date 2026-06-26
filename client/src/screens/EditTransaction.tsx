@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getAccounts, getCategories, getTransaction, updateTransaction, deleteTransaction } from '../api'
 import type { Account, Category } from '../types'
@@ -19,20 +19,23 @@ export default function EditTransaction() {
   const [date, setDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const inFlight = useRef(false)
 
   useEffect(() => {
-    Promise.all([getAccounts(), getCategories(), getTransaction(Number(id))]).then(([accs, cats, tx]) => {
-      setAccounts(accs)
-      setCategories(cats)
-      setType(tx.type as TxType)
-      setAmount(String(tx.amount))
-      setAccountId(tx.account_id ?? '')
-      setToAccountId(tx.to_account_id ?? '')
-      setCategoryId(tx.category_id ?? '')
-      setNote(tx.note || '')
-      setDate(tx.date)
-      setLoaded(true)
-    })
+    Promise.all([getAccounts(), getCategories(), getTransaction(Number(id))])
+      .then(([accs, cats, tx]) => {
+        setAccounts(accs)
+        setCategories(cats)
+        setType(tx.type as TxType)
+        setAmount(String(tx.amount))
+        setAccountId(tx.account_id ?? '')
+        setToAccountId(tx.to_account_id ?? '')
+        setCategoryId(tx.category_id ?? '')
+        setNote(tx.note || '')
+        setDate(tx.date)
+        setLoaded(true)
+      })
+      .catch(() => navigate('/'))
   }, [id])
 
   const filteredCats = categories.filter(c => c.type === type)
@@ -41,16 +44,22 @@ export default function EditTransaction() {
     (type === 'TRANSFER' || categoryId !== '')
 
   const handleSave = async () => {
-    if (!canSave) return
+    if (!canSave || inFlight.current) return
+    inFlight.current = true
     setSaving(true)
-    await updateTransaction(Number(id), {
-      date, amount: Number(amount), type,
-      category_id: type === 'TRANSFER' ? null : Number(categoryId),
-      account_id: Number(accountId),
-      to_account_id: type === 'TRANSFER' ? Number(toAccountId) : null,
-      note
-    })
-    navigate(-1)
+    try {
+      await updateTransaction(Number(id), {
+        date, amount: Number(amount), type,
+        category_id: type === 'TRANSFER' ? null : Number(categoryId),
+        account_id: Number(accountId),
+        to_account_id: type === 'TRANSFER' ? Number(toAccountId) : null,
+        note
+      })
+      navigate(-1)
+    } finally {
+      inFlight.current = false
+      setSaving(false)
+    }
   }
 
   const handleDelete = async () => {

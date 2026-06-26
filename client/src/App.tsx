@@ -98,7 +98,6 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!hasPin()) return
     const onVisible = () => {
       if (document.visibilityState === 'visible' && !isUnlocked()) setUnlocked(false)
     }

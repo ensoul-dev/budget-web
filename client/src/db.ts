@@ -77,12 +77,12 @@ async function applyBalance(
     const acc = await db.accounts.get(from)
     if (acc) {
       const d = tx.type === 'INCOME' ? tx.amount * s : -(tx.amount * s)
-      await db.accounts.update(from, { balance: acc.balance + d })
+      await db.accounts.update(from, { balance: Math.round((acc.balance + d) * 100) / 100 })
     }
   }
   if (tx.type === 'TRANSFER' && to) {
     const acc = await db.accounts.get(to)
-    if (acc) await db.accounts.update(to, { balance: acc.balance + tx.amount * s })
+    if (acc) await db.accounts.update(to, { balance: Math.round((acc.balance + tx.amount * s) * 100) / 100 })
   }
 }
 
@@ -136,17 +136,20 @@ export async function addTransaction(data: {
   category_id?: number | null; account_id?: number | null
   to_account_id?: number | null; note?: string
 }): Promise<{ id: number }> {
-  const id = await db.transactions.add({
-    date: data.date,
-    amount: data.amount,
-    type: data.type as DBTransaction['type'],
-    category_id: data.category_id ?? null,
-    account_id: data.account_id ?? null,
-    to_account_id: data.to_account_id ?? null,
-    note: data.note ?? '',
+  let newId!: number
+  await db.transaction('rw', db.accounts, db.transactions, async () => {
+    newId = (await db.transactions.add({
+      date: data.date,
+      amount: data.amount,
+      type: data.type as DBTransaction['type'],
+      category_id: data.category_id ?? null,
+      account_id: data.account_id ?? null,
+      to_account_id: data.to_account_id ?? null,
+      note: data.note ?? '',
+    })) as number
+    await applyBalance(data)
   })
-  await applyBalance(data)
-  return { id: id as number }
+  return { id: newId }
 }
 
 export async function updateTransaction(id: number, data: {
@@ -154,26 +157,30 @@ export async function updateTransaction(id: number, data: {
   category_id?: number | null; account_id?: number | null
   to_account_id?: number | null; note?: string
 }): Promise<void> {
-  const old = await db.transactions.get(id)
-  if (!old) return
-  await applyBalance(old, true)
-  await db.transactions.update(id, {
-    date: data.date,
-    amount: data.amount,
-    type: data.type as DBTransaction['type'],
-    category_id: data.category_id ?? null,
-    account_id: data.account_id ?? null,
-    to_account_id: data.to_account_id ?? null,
-    note: data.note ?? '',
+  await db.transaction('rw', db.accounts, db.transactions, async () => {
+    const old = await db.transactions.get(id)
+    if (!old) return
+    await applyBalance(old, true)
+    await db.transactions.update(id, {
+      date: data.date,
+      amount: data.amount,
+      type: data.type as DBTransaction['type'],
+      category_id: data.category_id ?? null,
+      account_id: data.account_id ?? null,
+      to_account_id: data.to_account_id ?? null,
+      note: data.note ?? '',
+    })
+    await applyBalance(data)
   })
-  await applyBalance(data)
 }
 
 export async function deleteTransaction(id: number): Promise<void> {
-  const tx = await db.transactions.get(id)
-  if (!tx) return
-  await applyBalance(tx, true)
-  await db.transactions.delete(id)
+  await db.transaction('rw', db.accounts, db.transactions, async () => {
+    const tx = await db.transactions.get(id)
+    if (!tx) return
+    await applyBalance(tx, true)
+    await db.transactions.delete(id)
+  })
 }
 
 export async function reorderAccounts(order: { id: number; sort_order: number }[]): Promise<void> {

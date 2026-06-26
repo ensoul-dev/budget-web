@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAccounts, getCategories, addTransaction } from '../api'
 import type { Account, Category } from '../types'
@@ -17,6 +17,7 @@ export default function AddTransaction() {
   const [note, setNote] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [saving, setSaving] = useState(false)
+  const inFlight = useRef(false)
 
   useEffect(() => {
     getAccounts().then(setAccounts)
@@ -29,16 +30,22 @@ export default function AddTransaction() {
     (type === 'TRANSFER' || categoryId !== '')
 
   const handleSave = async () => {
-    if (!canSave) return
+    if (!canSave || inFlight.current) return
+    inFlight.current = true
     setSaving(true)
-    await addTransaction({
-      date, amount: Number(amount), type,
-      category_id: type === 'TRANSFER' ? null : Number(categoryId),
-      account_id: Number(accountId),
-      to_account_id: type === 'TRANSFER' ? Number(toAccountId) : null,
-      note
-    })
-    navigate('/')
+    try {
+      await addTransaction({
+        date, amount: Number(amount), type,
+        category_id: type === 'TRANSFER' ? null : Number(categoryId),
+        account_id: Number(accountId),
+        to_account_id: type === 'TRANSFER' ? Number(toAccountId) : null,
+        note
+      })
+      navigate('/')
+    } finally {
+      inFlight.current = false
+      setSaving(false)
+    }
   }
 
   return (
