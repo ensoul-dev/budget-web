@@ -5,3 +5,4 @@ budget.db
 .env
 *.db-shm
 *.db-wal
+transactions.json
