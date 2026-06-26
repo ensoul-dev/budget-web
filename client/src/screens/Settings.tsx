@@ -45,6 +45,21 @@ export default function Settings() {
     else { setStatus(`Добавлено ${r.added} категорий — перезагрузка...`); setTimeout(() => window.location.reload(), 1200) }
   }
 
+  const handleForceUpdate = async () => {
+    setStatus('Очищаю кеш...')
+    try {
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(regs.map(r => r.unregister()))
+      }
+      const keys = await caches.keys()
+      await Promise.all(keys.map(k => caches.delete(k)))
+      window.location.reload()
+    } catch {
+      window.location.reload()
+    }
+  }
+
   const handleResetPin = () => {
     if (!confirm('Сбросить PIN? Придётся создать новый при следующем входе.')) return
     localStorage.removeItem('budget_pin')
@@ -88,6 +103,14 @@ export default function Settings() {
           {status}
         </div>
       )}
+
+      <div className="dark-section-header" style={{ marginTop:16 }}>Обновление</div>
+      <div className="dark-list">
+        <div className="dark-row" onClick={handleForceUpdate} style={{ cursor:'pointer' }}>
+          <span className="dark-row-label">🔄 Обновить приложение</span>
+          <span className="dark-row-value" style={{ color:'var(--dark-text2)', fontSize:12 }}>сбросить кеш</span>
+        </div>
+      </div>
 
       <div className="dark-section-header" style={{ marginTop:16 }}>Безопасность</div>
       <div className="dark-list">
