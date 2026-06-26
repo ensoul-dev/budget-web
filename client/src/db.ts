@@ -128,7 +128,7 @@ export async function getAccounts(): Promise<Account[]> {
 
 export async function getCategories(): Promise<Category[]> {
   const cats = await db.categories.orderBy('name').toArray()
-  return cats.map(c => ({ ...c, id: c.id! }))
+  return cats.map(c => ({ ...c, id: c.id!, type: (c.type as string).toUpperCase() as Category['type'] }))
 }
 
 export async function getTransactions(params: {
@@ -260,7 +260,7 @@ export async function importBackup(data: {
       data.accounts.map(a => ({ id: a.id, name: a.name, emoji: a.emoji, color_hex: a.color_hex, balance: a.balance, sort_order: a.sort_order ?? 0 }))
     )
     await db.categories.bulkAdd(
-      data.categories.map(c => ({ id: c.id, name: c.name, emoji: c.emoji, type: c.type as DBCategory['type'] }))
+      data.categories.map(c => ({ id: c.id, name: c.name, emoji: c.emoji, type: (c.type as string).toUpperCase() as DBCategory['type'] }))
     )
     await db.transactions.bulkAdd(
       data.transactions.map(t => ({ id: t.id, date: t.date, amount: t.amount, type: t.type as DBTransaction['type'], category_id: t.category_id, account_id: t.account_id, to_account_id: t.to_account_id, note: t.note ?? '' }))
