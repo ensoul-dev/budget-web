@@ -151,7 +151,7 @@ export async function getAccounts(): Promise<Account[]> {
 
 export async function getCategories(): Promise<Category[]> {
   const cats = await db.categories.orderBy('name').toArray()
-  return cats.map(c => ({ ...c, id: c.id!, type: (c.type as string).toUpperCase() as Category['type'] }))
+  return cats.map(c => ({ ...c, id: c.id!, type: ((c.type as string) ?? 'EXPENSE').toUpperCase() as Category['type'] }))
 }
 
 export async function getTransactions(params: {
