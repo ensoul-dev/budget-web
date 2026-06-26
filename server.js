@@ -3,13 +3,14 @@ const cors = require('cors');
 const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
+const XLSX = require('xlsx');
 
 const app = express();
 const PORT = 3000;
 const DB_PATH = path.join(__dirname, 'budget.db');
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
 app.use(express.static(path.join(__dirname, 'client/dist')));
 
 const db = new DatabaseSync(DB_PATH);
@@ -309,6 +310,77 @@ app.get('/api/stats/monthly', (req, res) => {
   `).all(month);
 
   res.json({ income, expense, byCategory });
+});
+
+// ─── Export / Import ─────────────────────────────────────────────────────────
+
+app.get('/api/export', (req, res) => {
+  const accounts     = db.prepare('SELECT * FROM accounts ORDER BY sort_order, id').all();
+  const categories   = db.prepare('SELECT * FROM categories ORDER BY id').all();
+  const transactions = db.prepare('SELECT * FROM transactions ORDER BY date, id').all();
+  const payload = { version: 1, exported_at: new Date().toISOString(), accounts, categories, transactions };
+  const filename = `budget-backup-${new Date().toISOString().slice(0,10)}.json`;
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Type', 'application/json');
+  res.json(payload);
+});
+
+app.get('/api/export/xlsx', (req, res) => {
+  const rows = db.prepare(`
+    SELECT
+      t.date as "Дата",
+      CASE t.type WHEN 'EXPENSE' THEN 'Расход' WHEN 'INCOME' THEN 'Доход' ELSE 'Перевод' END as "Тип",
+      COALESCE(c.name, '') as "Категория",
+      CASE WHEN t.type='EXPENSE' THEN -t.amount ELSE t.amount END as "Сумма",
+      COALESCE(a.name, '') as "Счёт",
+      COALESCE(ta.name, '') as "Счёт (куда)",
+      COALESCE(t.note, '') as "Заметка"
+    FROM transactions t
+    LEFT JOIN categories c ON t.category_id = c.id
+    LEFT JOIN accounts a ON t.account_id = a.id
+    LEFT JOIN accounts ta ON t.to_account_id = ta.id
+    ORDER BY t.date DESC, t.id DESC
+  `).all();
+
+  const accRows = db.prepare('SELECT name as "Счёт", balance as "Баланс" FROM accounts ORDER BY sort_order').all();
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Операции');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(accRows), 'Счета');
+
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const filename = `budget-${new Date().toISOString().slice(0,10)}.xlsx`;
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.send(buf);
+});
+
+app.post('/api/import', (req, res) => {
+  const { version, accounts, categories, transactions } = req.body;
+  if (!accounts || !categories || !transactions) return res.status(400).json({ error: 'invalid backup' });
+
+  db.exec('BEGIN');
+  try {
+    db.exec('DELETE FROM transactions');
+    db.exec('DELETE FROM categories');
+    db.exec('DELETE FROM accounts');
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('accounts','categories','transactions')");
+
+    const insAcc = db.prepare('INSERT INTO accounts (id,name,emoji,color_hex,balance,sort_order) VALUES (?,?,?,?,?,?)');
+    for (const a of accounts) insAcc.run(a.id, a.name, a.emoji, a.color_hex, a.balance, a.sort_order ?? 0);
+
+    const insCat = db.prepare('INSERT INTO categories (id,name,emoji,type) VALUES (?,?,?,?)');
+    for (const c of categories) insCat.run(c.id, c.name, c.emoji, c.type);
+
+    const insTx = db.prepare('INSERT INTO transactions (id,date,amount,type,category_id,account_id,to_account_id,note) VALUES (?,?,?,?,?,?,?,?)');
+    for (const t of transactions) insTx.run(t.id, t.date, t.amount, t.type, t.category_id, t.account_id, t.to_account_id, t.note ?? '');
+
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    return res.status(500).json({ error: e.message });
+  }
+  res.json({ ok: true, accounts: accounts.length, transactions: transactions.length });
 });
 
 // SPA fallback

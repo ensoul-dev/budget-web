@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Dashboard from './screens/Dashboard'
 import Transactions from './screens/Transactions'
 import AddTransaction from './screens/AddTransaction'
 import EditTransaction from './screens/EditTransaction'
 import Stats from './screens/Stats'
+import Settings from './screens/Settings'
 import PinLock, { isUnlocked, markUnlocked, hasPin } from './screens/PinLock'
+import { isEmpty, importBackup } from './db'
 import './App.css'
 
 function OfflineBanner() {
@@ -29,27 +31,89 @@ function OfflineBanner() {
   )
 }
 
+function ImportScreen({ onDone }: { onDone: () => void }) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [status, setStatus] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBusy(true)
+    setStatus('Загружаю...')
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      await importBackup(data)
+      setStatus('Готово!')
+      setTimeout(onDone, 800)
+    } catch {
+      setStatus('Ошибка: файл повреждён или неверный формат')
+      setBusy(false)
+    }
+    e.target.value = ''
+  }
+
+  return (
+    <div style={{
+      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+      height:'100vh', padding:32, gap:20, background:'var(--bg)'
+    }}>
+      <div style={{ fontSize:56 }}>💰</div>
+      <div style={{ fontSize:22, fontWeight:700, color:'var(--dark-text)' }}>Умный Бюджет</div>
+      <div style={{ fontSize:14, color:'var(--dark-text2)', textAlign:'center', lineHeight:1.7 }}>
+        Загрузите резервную копию (JSON),<br/>чтобы начать работу.<br/>
+        <span style={{ fontSize:12, opacity:0.7 }}>Данные хранятся в браузере на этом устройстве.</span>
+      </div>
+      <button
+        onClick={() => fileRef.current?.click()}
+        disabled={busy}
+        style={{
+          background:'var(--income)', color:'#fff', border:'none', borderRadius:14,
+          padding:'14px 28px', fontSize:15, fontWeight:600, cursor: busy ? 'default' : 'pointer',
+          opacity: busy ? 0.6 : 1
+        }}>
+        📥 Загрузить резервную копию
+      </button>
+      <input ref={fileRef} type="file" accept=".json" style={{ display:'none' }} onChange={handleImport} />
+      {status && (
+        <div style={{ fontSize:13, color: status.startsWith('Ошибка') ? '#EF5350' : 'var(--income)' }}>
+          {status}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
+  const [ready, setReady] = useState(false)
+  const [needImport, setNeedImport] = useState(false)
   const [unlocked, setUnlocked] = useState(() => !hasPin() || isUnlocked())
 
-  // Lock when app goes to background and comes back after 5 min
+  useEffect(() => {
+    isEmpty().then(empty => {
+      setNeedImport(empty)
+      setReady(true)
+    })
+  }, [])
+
   useEffect(() => {
     if (!hasPin()) return
     const onVisible = () => {
-      if (document.visibilityState === 'visible' && !isUnlocked()) {
-        setUnlocked(false)
-      }
+      if (document.visibilityState === 'visible' && !isUnlocked()) setUnlocked(false)
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
-  if (!unlocked) {
-    return <PinLock onUnlock={() => { markUnlocked(); setUnlocked(true) }} />
-  }
+  if (!ready) return <div className="loading">Загрузка...</div>
+
+  if (needImport) return <ImportScreen onDone={() => setNeedImport(false)} />
+
+  if (!unlocked) return <PinLock onUnlock={() => { markUnlocked(); setUnlocked(true) }} />
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/budget-web">
       <OfflineBanner />
       <div className="app">
         <div className="content">
@@ -59,6 +123,7 @@ export default function App() {
             <Route path="/add" element={<AddTransaction />} />
             <Route path="/edit/:id" element={<EditTransaction />} />
             <Route path="/stats" element={<Stats />} />
+            <Route path="/settings" element={<Settings />} />
           </Routes>
         </div>
         <nav className="bottom-nav">
@@ -74,6 +139,10 @@ export default function App() {
           <NavLink to="/stats" className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
             <span className="nav-icon">📊</span>
             <span>Статистика</span>
+          </NavLink>
+          <NavLink to="/settings" className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
+            <span className="nav-icon">⚙️</span>
+            <span>Настройки</span>
           </NavLink>
         </nav>
       </div>
