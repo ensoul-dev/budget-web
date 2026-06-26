@@ -150,7 +150,8 @@ export async function getAccounts(): Promise<Account[]> {
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const cats = await db.categories.orderBy('name').toArray()
+  const cats = await db.categories.toArray()
+  cats.sort((a, b) => a.name.localeCompare(b.name, 'ru'))
   return cats.map(c => ({ ...c, id: c.id!, type: ((c.type as string) ?? 'EXPENSE').toUpperCase() as Category['type'] }))
 }
 
