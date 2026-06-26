@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import Dashboard from './screens/Dashboard'
 import Transactions from './screens/Transactions'
@@ -113,7 +113,7 @@ export default function App() {
   if (!unlocked) return <PinLock onUnlock={() => { markUnlocked(); setUnlocked(true) }} />
 
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+    <HashRouter>
       <OfflineBanner />
       <div className="app">
         <div className="content">
@@ -146,6 +146,6 @@ export default function App() {
           </NavLink>
         </nav>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
