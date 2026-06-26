@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { importBackup, exportJSON, exportXLSX } from '../api'
+import { importBackup, exportJSON, exportXLSX, seedDefaultCategories } from '../api'
 import { lock, hasPin } from './PinLock'
 
 export default function Settings() {
@@ -38,6 +38,12 @@ export default function Settings() {
     }
   }
 
+  const handleSeedCategories = async () => {
+    const n = await seedDefaultCategories()
+    if (n === 0) setStatus('Категории уже есть')
+    else { setStatus(`Добавлено ${n} категорий`); setTimeout(() => window.location.reload(), 1200) }
+  }
+
   const handleResetPin = () => {
     if (!confirm('Сбросить PIN? Придётся создать новый при следующем входе.')) return
     localStorage.removeItem('budget_pin')
@@ -68,6 +74,11 @@ export default function Settings() {
           <span className="dark-row-value" style={{ color:'var(--dark-text2)', fontSize:12 }}>JSON</span>
         </div>
         <input ref={fileRef} type="file" accept=".json" style={{ display:'none' }} onChange={handleImport} />
+
+        <div className="dark-row" onClick={handleSeedCategories} style={{ cursor:'pointer' }}>
+          <span className="dark-row-label">🏷️ Восстановить категории</span>
+          <span className="dark-row-value" style={{ color:'var(--dark-text2)', fontSize:12 }}>если пусто</span>
+        </div>
 
       </div>
 

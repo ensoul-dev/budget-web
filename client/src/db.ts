@@ -92,6 +92,35 @@ export async function isEmpty(): Promise<boolean> {
   return (await db.accounts.count()) === 0
 }
 
+export async function seedDefaultCategories(): Promise<number> {
+  const existing = await db.categories.count()
+  if (existing > 0) return 0
+  const defaults: Omit<DBCategory, 'id'>[] = [
+    { name: 'Еда', emoji: '🍞', type: 'EXPENSE' },
+    { name: 'Ресторан, кафе', emoji: '☕', type: 'EXPENSE' },
+    { name: 'Транспорт', emoji: '✈️', type: 'EXPENSE' },
+    { name: 'Машина', emoji: '🚗', type: 'EXPENSE' },
+    { name: 'Хоз расходы', emoji: '🏠', type: 'EXPENSE' },
+    { name: 'Одежда', emoji: '👗', type: 'EXPENSE' },
+    { name: 'Лечение', emoji: '💊', type: 'EXPENSE' },
+    { name: 'Косметолог', emoji: '💅', type: 'EXPENSE' },
+    { name: 'Спорт', emoji: '⚽', type: 'EXPENSE' },
+    { name: 'Развлечения', emoji: '🎉', type: 'EXPENSE' },
+    { name: 'Подарки', emoji: '🎁', type: 'EXPENSE' },
+    { name: 'Связь, Интернет', emoji: '📡', type: 'EXPENSE' },
+    { name: 'Электроника', emoji: '📱', type: 'EXPENSE' },
+    { name: 'Учёба', emoji: '📚', type: 'EXPENSE' },
+    { name: 'Налоги, гос. услуги', emoji: '🏛️', type: 'EXPENSE' },
+    { name: 'Прочее', emoji: '📦', type: 'EXPENSE' },
+    { name: 'Зарплата', emoji: '💰', type: 'INCOME' },
+    { name: 'Самозанятость', emoji: '💼', type: 'INCOME' },
+    { name: 'Подарок', emoji: '🎁', type: 'INCOME' },
+    { name: 'Прочие доходы', emoji: '📦', type: 'INCOME' },
+  ]
+  await db.categories.bulkAdd(defaults)
+  return defaults.length
+}
+
 export async function getAccounts(): Promise<Account[]> {
   const accs = await db.accounts.orderBy('sort_order').toArray()
   return accs.map(a => ({ ...a, id: a.id! }))

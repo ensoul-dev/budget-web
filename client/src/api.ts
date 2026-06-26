@@ -11,4 +11,5 @@ export {
   getMonthStats,
   exportJSON,
   exportXLSX,
+  seedDefaultCategories,
 } from './db'
