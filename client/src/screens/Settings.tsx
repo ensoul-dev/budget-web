@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { importBackup, exportJSON, exportXLSX } from '../api'
-import { lock } from './PinLock'
+import { lock, hasPin } from './PinLock'
 
 export default function Settings() {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -79,9 +79,15 @@ export default function Settings() {
 
       <div className="dark-section-header" style={{ marginTop:16 }}>Безопасность</div>
       <div className="dark-list">
-        <div className="dark-row" onClick={handleResetPin} style={{ cursor:'pointer' }}>
-          <span className="dark-row-label">🔑 Сбросить PIN-код</span>
-        </div>
+        {hasPin() ? (
+          <div className="dark-row" onClick={handleResetPin} style={{ cursor:'pointer' }}>
+            <span className="dark-row-label">🔑 Сбросить PIN-код</span>
+          </div>
+        ) : (
+          <div className="dark-row" onClick={() => { lock(); window.location.reload() }} style={{ cursor:'pointer' }}>
+            <span className="dark-row-label">🔑 Установить PIN-код</span>
+          </div>
+        )}
       </div>
 
       <div style={{ padding:'24px 16px', color:'var(--dark-text2)', fontSize:12, lineHeight:1.6 }}>

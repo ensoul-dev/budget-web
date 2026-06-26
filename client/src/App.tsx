@@ -88,7 +88,7 @@ function ImportScreen({ onDone }: { onDone: () => void }) {
 export default function App() {
   const [ready, setReady] = useState(false)
   const [needImport, setNeedImport] = useState(false)
-  const [unlocked, setUnlocked] = useState(() => !hasPin() || isUnlocked())
+  const [unlocked, setUnlocked] = useState(() => isUnlocked())
 
   useEffect(() => {
     isEmpty().then(empty => {
