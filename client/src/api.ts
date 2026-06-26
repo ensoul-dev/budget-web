@@ -12,4 +12,5 @@ export {
   exportJSON,
   exportXLSX,
   seedDefaultCategories,
+  getRecentNotes,
 } from './db'

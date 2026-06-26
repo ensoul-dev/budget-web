@@ -144,6 +144,22 @@ export async function seedDefaultCategories(): Promise<{ fixed: number; added: n
   return { fixed: 0, added: toAdd.length, status: 'added' }
 }
 
+export async function getRecentNotes(limit = 25): Promise<string[]> {
+  const txs = await db.transactions.toArray()
+  txs.sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
+  const seen = new Set<string>()
+  const notes: string[] = []
+  for (const tx of txs) {
+    const n = tx.note?.trim()
+    if (n && !seen.has(n)) {
+      seen.add(n)
+      notes.push(n)
+      if (notes.length >= limit) break
+    }
+  }
+  return notes
+}
+
 export async function getAccounts(): Promise<Account[]> {
   const accs = await db.accounts.orderBy('sort_order').toArray()
   return accs.map(a => ({ ...a, id: a.id! }))

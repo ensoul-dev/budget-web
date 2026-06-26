@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getAccounts, getCategories, addTransaction } from '../api'
+import { getAccounts, getCategories, addTransaction, getRecentNotes } from '../api'
 import type { Account, Category } from '../types'
 
 type TxType = 'EXPENSE' | 'INCOME' | 'TRANSFER'
@@ -15,6 +15,7 @@ export default function AddTransaction() {
   const [toAccountId, setToAccountId] = useState<number | ''>('')
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [note, setNote] = useState('')
+  const [recentNotes, setRecentNotes] = useState<string[]>([])
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [saving, setSaving] = useState(false)
   const inFlight = useRef(false)
@@ -22,6 +23,7 @@ export default function AddTransaction() {
   useEffect(() => {
     getAccounts().then(setAccounts)
     getCategories().then(setCategories)
+    getRecentNotes().then(setRecentNotes)
   }, [])
 
   const filteredCats = categories.filter(c => c.type === type)
@@ -115,6 +117,23 @@ export default function AddTransaction() {
           <label className="form-label">Заметка</label>
           <input className="form-input" type="text" placeholder="Необязательно"
             value={note} onChange={e => setNote(e.target.value)} />
+          {recentNotes.length > 0 && (
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
+              {recentNotes.map(n => (
+                <button key={n} type="button"
+                  onClick={() => setNote(n)}
+                  style={{
+                    background: note === n ? 'var(--accent)' : 'var(--dark-card)',
+                    color: note === n ? '#fff' : 'var(--dark-text2)',
+                    border: `1px solid ${note === n ? 'var(--accent)' : 'var(--dark-border, #333)'}`,
+                    borderRadius: 20, padding:'4px 12px', fontSize:12,
+                    cursor:'pointer', whiteSpace:'nowrap'
+                  }}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <button className="save-btn" onClick={handleSave} disabled={!canSave || saving}>
