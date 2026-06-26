@@ -113,7 +113,7 @@ export default function App() {
   if (!unlocked) return <PinLock onUnlock={() => { markUnlocked(); setUnlocked(true) }} />
 
   return (
-    <BrowserRouter basename="/budget-web">
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <OfflineBanner />
       <div className="app">
         <div className="content">

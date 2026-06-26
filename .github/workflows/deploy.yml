@@ -35,6 +35,8 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: client
+        env:
+          GITHUB_PAGES: '1'
 
       - uses: actions/configure-pages@v4
 
