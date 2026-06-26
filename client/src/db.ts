@@ -93,8 +93,21 @@ export async function isEmpty(): Promise<boolean> {
 }
 
 export async function seedDefaultCategories(): Promise<number> {
-  const existing = await db.categories.count()
-  if (existing > 0) return 0
+  const cats = await db.categories.toArray()
+
+  // Fix existing categories with wrong-case types (e.g. 'expense' → 'EXPENSE')
+  const toFix = cats.filter(c => c.type !== (c.type as string).toUpperCase())
+  if (toFix.length > 0) {
+    await db.transaction('rw', db.categories, async () => {
+      for (const cat of toFix) {
+        await db.categories.update(cat.id!, { type: (cat.type as string).toUpperCase() as DBCategory['type'] })
+      }
+    })
+    return -(toFix.length) // negative = fixed, not added
+  }
+
+  if (cats.length > 0) return 0
+
   const defaults: Omit<DBCategory, 'id'>[] = [
     { name: 'Еда', emoji: '🍞', type: 'EXPENSE' },
     { name: 'Ресторан, кафе', emoji: '☕', type: 'EXPENSE' },

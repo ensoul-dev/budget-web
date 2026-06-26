@@ -40,7 +40,8 @@ export default function Settings() {
 
   const handleSeedCategories = async () => {
     const n = await seedDefaultCategories()
-    if (n === 0) setStatus('Категории уже есть')
+    if (n === 0) setStatus('Категории уже есть и в порядке')
+    else if (n < 0) { setStatus(`Исправлено ${-n} категорий — перезагрузка...`); setTimeout(() => window.location.reload(), 1200) }
     else { setStatus(`Добавлено ${n} категорий`); setTimeout(() => window.location.reload(), 1200) }
   }
 
