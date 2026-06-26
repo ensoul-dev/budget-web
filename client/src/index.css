@@ -1,0 +1,46 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Dark theme (accounts, stats, nav) */
+  --dark-bg: #1C1C1E;
+  --dark-surface: #2C2C2E;
+  --dark-row: #1C1C1E;
+  --dark-text: #F2F2F7;
+  --dark-text2: #8E8E93;
+  --dark-sep: #3A3A3C;
+  --dark-header: #2C2C2E;
+
+  /* Warm theme (transaction list) */
+  --warm-bg: #F5E8CC;
+  --warm-header: #E2C99A;
+  --warm-text: #2C1A0E;
+  --warm-text2: #7A5C3A;
+  --warm-sep: #D4B48366;
+
+  /* Amounts */
+  --income: #2E7D32;
+  --expense: #8B1A1A;
+  --transfer: #5A5A5A;
+
+  /* Common */
+  --nav-h: 56px;
+  --radius: 12px;
+}
+
+body {
+  background: var(--dark-bg);
+  color: var(--dark-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+::-webkit-scrollbar { width: 0; }
