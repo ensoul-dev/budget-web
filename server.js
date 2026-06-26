@@ -55,16 +55,16 @@ function seedIfEmpty() {
   const arr = JSON.parse(raw);
 
   const accountMeta = {
-    'Сбербанк':          { emoji: '🟢', color: '#21A038' },
-    'Кредитка Сбербанк': { emoji: '💳', color: '#21A038' },
-    'Наличные':          { emoji: '💵', color: '#4CAF50' },
-    'Альфа-банк':        { emoji: '🔴', color: '#EF5350' },
-    'МТС':               { emoji: '📱', color: '#E81123' },
-    'Вклад':             { emoji: '🏦', color: '#1565C0' },
-    'Т-БАНК':            { emoji: '🟡', color: '#FFD600' },
-    'ФПБ':               { emoji: '💼', color: '#7B1FA2' },
-    'Крипта':            { emoji: '₿',  color: '#F57C00' },
-    'Плановые':          { emoji: '📋', color: '#78909C' },
+    'Bank 1':    { emoji: '🟢', color: '#21A038' },
+    'Card 1':    { emoji: '💳', color: '#5C6BC0' },
+    'Cash':      { emoji: '💵', color: '#4CAF50' },
+    'Bank 2':    { emoji: '🔴', color: '#EF5350' },
+    'Mobile':    { emoji: '📱', color: '#E81123' },
+    'Savings':   { emoji: '🏦', color: '#1565C0' },
+    'Bank 3':    { emoji: '🟡', color: '#FFD600' },
+    'Other':     { emoji: '💼', color: '#7B1FA2' },
+    'Crypto':    { emoji: '₿',  color: '#F57C00' },
+    'Planned':   { emoji: '📋', color: '#78909C' },
   };
 
   const accountNames = new Set();

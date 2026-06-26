@@ -6,3 +6,4 @@ budget.db
 *.db-shm
 *.db-wal
 transactions.json
+budget-backup-*.json
