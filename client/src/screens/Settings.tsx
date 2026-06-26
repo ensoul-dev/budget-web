@@ -39,10 +39,10 @@ export default function Settings() {
   }
 
   const handleSeedCategories = async () => {
-    const n = await seedDefaultCategories()
-    if (n === 0) setStatus('Категории уже есть и в порядке')
-    else if (n < 0) { setStatus(`Исправлено ${-n} категорий — перезагрузка...`); setTimeout(() => window.location.reload(), 1200) }
-    else { setStatus(`Добавлено ${n} категорий`); setTimeout(() => window.location.reload(), 1200) }
+    const r = await seedDefaultCategories()
+    if (r.status === 'ok') setStatus('Категории есть — расходы и доходы в порядке')
+    else if (r.status === 'fixed') { setStatus(`Исправлено ${r.fixed} категорий — перезагрузка...`); setTimeout(() => window.location.reload(), 1200) }
+    else { setStatus(`Добавлено ${r.added} категорий — перезагрузка...`); setTimeout(() => window.location.reload(), 1200) }
   }
 
   const handleResetPin = () => {

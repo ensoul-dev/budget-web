@@ -92,10 +92,10 @@ export async function isEmpty(): Promise<boolean> {
   return (await db.accounts.count()) === 0
 }
 
-export async function seedDefaultCategories(): Promise<number> {
+export async function seedDefaultCategories(): Promise<{ fixed: number; added: number; status: string }> {
   const cats = await db.categories.toArray()
 
-  // Fix existing categories with wrong-case types (e.g. 'expense' → 'EXPENSE')
+  // Fix wrong-case types
   const toFix = cats.filter(c => c.type !== (c.type as string).toUpperCase())
   if (toFix.length > 0) {
     await db.transaction('rw', db.categories, async () => {
@@ -103,12 +103,10 @@ export async function seedDefaultCategories(): Promise<number> {
         await db.categories.update(cat.id!, { type: (cat.type as string).toUpperCase() as DBCategory['type'] })
       }
     })
-    return -(toFix.length) // negative = fixed, not added
+    return { fixed: toFix.length, added: 0, status: 'fixed' }
   }
 
-  if (cats.length > 0) return 0
-
-  const defaults: Omit<DBCategory, 'id'>[] = [
+  const expenseDefaults: Omit<DBCategory, 'id'>[] = [
     { name: 'Еда', emoji: '🍞', type: 'EXPENSE' },
     { name: 'Ресторан, кафе', emoji: '☕', type: 'EXPENSE' },
     { name: 'Транспорт', emoji: '✈️', type: 'EXPENSE' },
@@ -125,13 +123,25 @@ export async function seedDefaultCategories(): Promise<number> {
     { name: 'Учёба', emoji: '📚', type: 'EXPENSE' },
     { name: 'Налоги, гос. услуги', emoji: '🏛️', type: 'EXPENSE' },
     { name: 'Прочее', emoji: '📦', type: 'EXPENSE' },
+  ]
+  const incomeDefaults: Omit<DBCategory, 'id'>[] = [
     { name: 'Зарплата', emoji: '💰', type: 'INCOME' },
     { name: 'Самозанятость', emoji: '💼', type: 'INCOME' },
     { name: 'Подарок', emoji: '🎁', type: 'INCOME' },
     { name: 'Прочие доходы', emoji: '📦', type: 'INCOME' },
   ]
-  await db.categories.bulkAdd(defaults)
-  return defaults.length
+
+  const hasExpense = cats.some(c => c.type === 'EXPENSE')
+  const hasIncome = cats.some(c => c.type === 'INCOME')
+
+  if (hasExpense && hasIncome) return { fixed: 0, added: 0, status: 'ok' }
+
+  const toAdd: Omit<DBCategory, 'id'>[] = [
+    ...(!hasExpense ? expenseDefaults : []),
+    ...(!hasIncome ? incomeDefaults : []),
+  ]
+  await db.categories.bulkAdd(toAdd)
+  return { fixed: 0, added: toAdd.length, status: 'added' }
 }
 
 export async function getAccounts(): Promise<Account[]> {
